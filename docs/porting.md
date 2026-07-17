@@ -138,7 +138,17 @@ new shader for every layer. The Godot `.tscn` sets its own parameter values for 
 shader (different light origin, palette, size, etc. than the shader's original single-layer
 planet) -- so the reuse gets its own `*-defaults*` plist (`*lava-world-ground-defaults*`,
 `*lava-world-craters-defaults*`) rather than sharing the original planet's `*-defaults*`.
-Only the WGSL/fields functions are shared; defaults are always per-scene.
+Only the WGSL/fields functions are shared; defaults are always per-scene. `rivers` and
+`ice-world` follow the same pattern for their `clouds` (and, for `ice-world`,
+`planet-under`) layers.
+
+**`.tscn`-inline shaders.** `IceWorld.tscn`'s "Lakes" layer and `DryTerran.tscn`'s only
+layer embed their shader source directly as a `[sub_resource type="Shader"]` `code = "..."`
+block rather than referencing a standalone `Planets/*/*.gdshader` file -- there is no
+`.gdshader` to point at for these; the source only exists inside the `.tscn`. Ported the
+same way as any other shader once extracted (`src/shaders/ice-lakes.lisp`,
+`src/shaders/dry-terran.lisp`), just cited by `.tscn` path + sub_resource id in comments
+instead of a `.gdshader` path.
 
 ## Colour space
 

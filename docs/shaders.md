@@ -17,14 +17,16 @@ translation approach.
 | `GasPlanetLayers/GasLayers.gdshader` | Ported | `src/shaders/gas-layers.lisp` (`:gas-planet-layers`, layer `:gas-layers`) |
 | `GasPlanetLayers/Ring.gdshader` | Ported | `src/shaders/ring.lisp` (`:gas-planet-layers`, layer `:ring`) |
 | `Asteroids/Asteroids.gdshader` | Ported | `src/shaders/asteroids.lisp` (`:asteroids`, layer `:asteroid`) |
-| `LandMasses/PlanetUnder.gdshader` | Ported | `src/shaders/planet-under.lisp` (`:land-masses`, layer `:water`) |
+| `LandMasses/PlanetUnder.gdshader` | Ported | `src/shaders/planet-under.lisp` (`:land-masses`, layer `:water`; also reused by `:ice-world`'s `:water` layer) |
 | `LandMasses/PlanetLandmass.gdshader` | Ported | `src/shaders/planet-landmass.lisp` (`:land-masses`, layer `:land`) |
-| `LandMasses/Clouds.gdshader` | Ported | `src/shaders/clouds.lisp` (`:land-masses`, layer `:clouds`; also reused by `:rivers`' `:clouds` layer) |
+| `LandMasses/Clouds.gdshader` | Ported | `src/shaders/clouds.lisp` (`:land-masses`, layer `:clouds`; also reused by `:rivers`' and `:ice-world`'s `:clouds` layers) |
 | `Rivers/LandRivers.gdshader` | Ported | `src/shaders/land-rivers.lisp` (`:rivers`, layer `:land-rivers`) |
 | `LavaWorld/Rivers.gdshader` | Ported | `src/shaders/lava-rivers.lisp` (`:lava-world`, layer `:lava-rivers`) |
+| `IceWorld.tscn` inline "Lakes" shader | Ported | `src/shaders/ice-lakes.lisp` (`:ice-world`, layer `:lakes`) -- no standalone `.gdshader`, embedded inline in the `.tscn` |
+| `DryTerran.tscn` inline shader | Ported | `src/shaders/dry-terran.lisp` (`:dry-terran`, layer `:land`) -- no standalone `.gdshader`, embedded inline in the `.tscn` |
 
-"Pending" shaders are tracked under the `PLANETS` label on the tracker. Multi-layer
-compositing infrastructure (draw a planet's layers back-to-front in one render pass; see
+Every shader is now ported. Multi-layer compositing infrastructure (draw a planet's layers
+back-to-front in one render pass; see
 [porting.md](porting.md#multi-layer-compositing)) landed with the `no-atmosphere` planet's
 `ground` + `craters` layers as the proof (same-size, identity `layer_scale`). BlackHoleRing
 and StarBlobs/StarFlares followed as the oversized-quad case: the `black-hole` and `star`
@@ -37,8 +39,7 @@ GasPlanetLayers followed as the first two planets ported with *no* prior single-
 transparent overlays rather than an opaque base with one transparent overlay on top;
 `gas-planet-layers` is the second worked oversized-layer example after BlackHoleRing (`ring`
 on a 300px quad, `gas-layers` body shrunk to `layer_scale` 100/300, ring occlusion behind
-the planet via `scale_rel_to_planet`). Remaining single-layer shaders, DSL re-expression,
-resize handling, and live GUI controls are also tracked on the tracker.
+the planet via `scale_rel_to_planet`).
 
 `gas-planet` is the first of this last batch: functionally near-identical to
 `LandMasses/Clouds.gdshader` (src/shaders/clouds.lisp) -- same untiled-hash RAND, same
@@ -66,3 +67,13 @@ than sharing `*no-atmosphere-defaults*`/`*craters-defaults*` (see
 (reusing `src/shaders/clouds.lisp` with Rivers.tscn's own params as `*rivers-clouds-defaults*`),
 plus a new base layer (`land-rivers`, a terran river-network overlay -- not the same shader
 as `LavaWorld/Rivers.gdshader` despite the shared "Rivers" filename).
+
+`ice-world` and `dry-terran` close out the last two: both are `.tscn`-inline shaders with no
+standalone `.gdshader` file at all (source lives only as a `[sub_resource
+type="Shader"]`/`code = "..."` block in `IceWorld.tscn`/`DryTerran.tscn`). `ice-world`
+reuses `planet-under` and `clouds` (again under its own scene defaults) alongside one new
+inline layer (`ice-lakes`, a lake-cutout overlay). `dry-terran` is fully self-contained --
+one new inline shader, one layer -- and, like Galaxy, uses a dynamic (posterized) colour
+index rather than a fixed one. This closes out every shader tracked under the `PLANETS`
+label; DSL re-expression, resize handling, and live GUI controls are still tracked on the
+tracker.

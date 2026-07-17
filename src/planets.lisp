@@ -126,7 +126,27 @@
                        (make-layer :name :clouds
                                    :wgsl-fn #'clouds-wgsl
                                    :fields-fn #'clouds-fields
-                                   :defaults *rivers-clouds-defaults*)))))
+                                   :defaults *rivers-clouds-defaults*)))
+        (make-planet
+         :name :ice-world
+         :layers (list (make-layer :name :water
+                                   :wgsl-fn #'planet-under-wgsl
+                                   :fields-fn #'planet-under-fields
+                                   :defaults *ice-world-under-defaults*)
+                       (make-layer :name :lakes
+                                   :wgsl-fn #'ice-lakes-wgsl
+                                   :fields-fn #'ice-lakes-fields
+                                   :defaults *ice-lakes-defaults*)
+                       (make-layer :name :clouds
+                                   :wgsl-fn #'clouds-wgsl
+                                   :fields-fn #'clouds-fields
+                                   :defaults *ice-world-clouds-defaults*)))
+        (make-planet
+         :name :dry-terran
+         :layers (list (make-layer :name :land
+                                   :wgsl-fn #'dry-terran-wgsl
+                                   :fields-fn #'dry-terran-fields
+                                   :defaults *dry-terran-defaults*)))))
 
 (defun find-planet (name)
   (or (find name *planets* :key #'planet-name)
