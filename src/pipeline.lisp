@@ -94,7 +94,8 @@ by MAKE-PLANET-PIPELINES), all driven by the same TIME."
   (cl-webgpu/wrapper:set-bind-group pass 0 (layer-pipeline-bind-group lp))
   (cl-webgpu/wrapper:draw pass 3))
 
-(defun render-planet-frame (device target pps &key (clear-r 0.05d0) (clear-g 0.05d0) (clear-b 0.08d0))
+(defun render-planet-frame (device target pps &key (clear-r 0.05d0) (clear-g 0.05d0) (clear-b 0.08d0)
+                                                    fb-width fb-height)
   "Render one frame of PPS -- a planet's layer-pipelines, back to front, as
 returned by MAKE-PLANET-PIPELINES -- into TARGET (a GPU-SURFACE or, with
 cl-webgpu/headless loaded, a GPU-OFFSCREEN-TARGET) and present/finalize it.
@@ -102,13 +103,26 @@ All layers draw into the same render pass (one clear, N draws, one
 submit/present) so each layer's alpha blending composites it over the
 layers already drawn. Written against ACQUIRE-FRAME-TEXTURE-VIEW/
 PRESENT-FRAME so the same code drives both the on-screen window
-(src/app.lisp) and headless PNG capture (src/headless.lisp)."
+(src/app.lisp) and headless PNG capture (src/headless.lisp).
+
+FB-WIDTH/FB-HEIGHT are TARGET's current framebuffer-pixel dimensions. When
+given and unequal (a resized, non-square window -- src/app.lisp always
+passes these; headless capture never does, since its targets are square by
+construction), the draw is confined to a centered square viewport/scissor so
+the planet's circular shaders keep their aspect ratio instead of stretching
+into an ellipse; the letterboxed margins stay at the clear colour."
   (let ((view (cl-webgpu/wrapper:acquire-frame-texture-view target)))
     (when view
       (unwind-protect
           (cl-webgpu/wrapper:with-gpu-command-encoder (encoder device)
             (cl-webgpu/wrapper:with-render-pass (pass encoder view
                                                  :clear-r clear-r :clear-g clear-g :clear-b clear-b)
+              (when (and fb-width fb-height (/= fb-width fb-height))
+                (let* ((size (min fb-width fb-height))
+                       (vx (/ (- fb-width size) 2))
+                       (vy (/ (- fb-height size) 2)))
+                  (cl-webgpu/wrapper:set-viewport pass vx vy size size)
+                  (cl-webgpu/wrapper:set-scissor-rect pass vx vy size size)))
               (dolist (lp pps) (draw-layer pass lp))
               (let* ((raw-queue (cl-webgpu:wgpu-device-get-queue (cl-webgpu/wrapper:handle device)))
                      (queue (make-instance 'cl-webgpu/wrapper:gpu-queue :handle raw-queue)))
