@@ -103,4 +103,33 @@ fn spherify(uv: vec2<f32>) -> vec2<f32> {
   let sph = centered / (z + 1.0);
   return sph * 0.5 + 0.5;
 }
+
+// Remaps a fragment's fullscreen UV onto the sub-rectangle a layer's body
+// occupies within its planet's frame. In the original Godot scenes, layers
+// like a gas planet's ring or a star's flares are drawn on a ColorRect
+// several times larger than (and centred on) the base body's ColorRect, so
+// their shader sees the same 0..1 UV range stretched over more screen space.
+// Here every layer shares one fullscreen triangle, so LAYER_SCALE (=
+// this layer's quad size / the planet's largest quad size) does the same
+// job: SCALE 1.0 is identity (a normal, un-oversized layer); SCALE < 1.0
+// shrinks the visible body into the centre of the frame, leaving room
+// around it for an oversized layer's geometry to extend into.
+fn layer_uv(uv: vec2<f32>, scale: f32) -> vec2<f32> {
+  return (uv - vec2<f32>(0.5)) / scale + vec2<f32>(0.5);
+}
+
+// by Leukbaars from https://www.shadertoy.com/view/4tK3zR -- a hash-grid of
+// randomly sized/offset circles, tileable via PHASH's SIZE-based wrap.
+// Used by Craters (and, in later layers, Clouds/GasLayers/StarBlobs/
+// StarFlares/Ring/BlackHoleRing).
+fn circle_noise(uv_in: vec2<f32>, seed: f32, size: f32) -> f32 {
+  var uv = uv_in;
+  let uv_y = floor(uv.y);
+  uv.x = uv.x + uv_y * 0.31;
+  let f = fract(uv);
+  let h = phash(vec2<f32>(floor(uv.x), uv_y), seed, size);
+  let m = length(f - 0.25 - vec2<f32>(h * 0.5));
+  let r = h * 0.25;
+  return smoothstep(r - 0.10 * r, r, m);
+}
 ")

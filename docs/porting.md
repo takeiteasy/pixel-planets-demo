@@ -54,6 +54,39 @@ have alpha blending on (`make-render-pipeline :blend '()`, i.e. standard premult
 alpha) even for a single planet over a plain clear colour, or the cutout renders as a
 solid square.
 
+## Multi-layer compositing
+
+Several original planet types stack multiple `ColorRect`s, each with its own shader,
+alpha-blended back-to-front over a shared base (e.g. NoAtmosphere = `Ground` +
+`Craters`; BlackHole = `BlackHole` + `BlackHoleRing`; Star = `StarBlobs` + `Star` +
+`StarFlares`). Here a `planet` (`src/planets.lisp`) wraps an ordered `layers` list —
+each a `layer` (the old per-shader struct: WGSL source, uniform-field builder, defaults)
+— and `src/pipeline.lisp` builds one `layer-pipeline` per layer and draws them into a
+*single* render pass, back to front (`make-planet-pipelines`/`render-planet-frame`). One
+clear, N draws, one submit/present; each layer's existing alpha blending composites it
+over whatever was drawn before it, so no new blend modes or intermediate render targets
+are needed.
+
+**Oversized layers (`layer_scale`).** Some layers in the original are drawn on a
+`ColorRect` several times larger than the base body's — e.g. a gas planet's `Ring` on a
+3× quad centred on the planet, or a star's `StarBlobs`/`StarFlares` on a 2× quad — so
+their shader sees the same `0..1` UV stretched over more screen space, letting rings and
+flares extend beyond the base disc. Since every layer here shares one fullscreen
+triangle instead of a differently-sized quad, `src/shaders/common.lisp`'s `layer_uv(uv,
+scale)` reproduces the effect: `scale = this layer's quad size / the planet's largest
+quad size` (1.0 for a normal, non-oversized layer) remaps the fragment's UV so the base
+body occupies the central `scale` fraction of the frame. Every ported fragment shader
+takes `layer_scale` as a uniform and applies `layer_uv` to `in.uv` as its first step.
+Keep each layer's Godot `pixels` uniform as-is (100/200/300 etc.) rather than
+normalizing it — it already compensates for the oversized quad's pixel density in the
+original, and only matches up correctly alongside `layer_scale` if left alone.
+
+`layer_scale` is a compositor-only knob — it has no corresponding Godot uniform, and is
+1.0 (identity) for every layer ported so far (`no-atmosphere`'s `ground`+`craters` are
+both ordinary 100×100-equivalent layers). It's ported into every shader up front so
+future oversized layers (BlackHoleRing, StarBlobs/StarFlares, GasPlanetLayers' `Ring`)
+only need a non-1.0 default, not a shader rewrite.
+
 ## Colour space
 
 The on-screen surface picks whatever format `get-surface-format` reports (typically

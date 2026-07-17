@@ -19,19 +19,19 @@ PNG. No window or display server required."
         (cl-webgpu/wrapper:with-gpu-device (device inst adapter)
           (let ((target (cl-webgpu/headless:make-offscreen-target device width height)))
             (unwind-protect
-                (let ((pp (make-planet-pipeline device :rgba8-unorm planet)))
+                (let ((pps (make-planet-pipelines device :rgba8-unorm planet)))
                   (unwind-protect
                       (let ((queue (cl-webgpu:wgpu-device-get-queue (cl-webgpu/wrapper:handle device))))
                         (unwind-protect
                             (progn
                               (update-planet-uniforms
-                               (make-instance 'cl-webgpu/wrapper:gpu-queue :handle queue) pp time)
-                              (render-planet-frame device target pp)
+                               (make-instance 'cl-webgpu/wrapper:gpu-queue :handle queue) pps time)
+                              (render-planet-frame device target pps)
                               (cl-webgpu/headless:readback-texture-png
                                device (make-instance 'cl-webgpu/wrapper:gpu-queue :handle queue)
                                target path))
                           (cl-webgpu:wgpu-queue-release queue)))
-                    (release-planet-pipeline pp)))
+                    (release-planet-pipelines pps)))
               (cl-webgpu/wrapper:release target)))))))
   path)
 

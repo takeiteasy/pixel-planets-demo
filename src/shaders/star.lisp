@@ -23,7 +23,7 @@
   tiles: f32,
   n_colors: u32,
   should_dither: u32,
-  _pad0: f32,
+  layer_scale: f32,
   _pad1: f32,
   colors: array<vec4<f32>, 4>,
 };
@@ -53,7 +53,7 @@ fn cells(p_in: vec2<f32>, num_cells: f32, tiles: f32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-  var pixelized = pixelize(in.uv, u.pixels);
+  var pixelized = pixelize(layer_uv(in.uv, u.layer_scale), u.pixels);
   let a = step(distance(pixelized, vec2<f32>(0.5)), 0.49999);
   let dith = dither(in.uv, pixelized, u.pixels);
 
@@ -84,7 +84,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 ;; see the note at the top of src/uniforms.lisp.
 (defun star-fields (params time)
   (destructuring-bind (&key pixels time-speed rotation seed size octaves
-                            tiles n-colors should-dither colors)
+                            tiles n-colors should-dither (layer-scale 1.0) colors)
       params
     (list (list :f32 pixels)
           (list :f32 time-speed)
@@ -96,13 +96,16 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
           (list :f32 tiles)
           (list :u32 n-colors)
           (list :u32 (if should-dither 1 0))
-          (list :f32 0.0)
+          (list :f32 layer-scale)
           (list :f32 0.0)
           (list :vec4-array colors))))
 
 ;; Default parameters lifted from PixelPlanets/Planets/Star/Star.tscn
 ;; (sub_resource id=4, the Star.gdshader material). `time` is driven live by
 ;; the host render loop rather than taken from the static tscn snapshot.
+;; LAYER-SCALE is not a Godot uniform -- it's this port's compositor knob
+;; (see src/planets.lisp), 1.0 here until a follow-up ticket adds StarBlobs
+;; and StarFlares as oversized layers on this planet.
 (defparameter *star-defaults*
   (list :pixels 100.0
         :time-speed 0.05
@@ -113,6 +116,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         :tiles 1.0
         :n-colors 4
         :should-dither t
+        :layer-scale 1.0
         :colors (list '(0.960784 1.0 0.909804 1.0)
                       '(0.466667 0.839216 0.756863 1.0)
                       '(0.109804 0.572549 0.654902 1.0)

@@ -1,25 +1,29 @@
 ;;;; src/pipeline.lisp
 ;;;;
-;;;; Builds a fullscreen-triangle render pipeline for a planet: shader
-;;;; module, alpha-blended pipeline (planets output an a*col.a circle-mask
-;;;; cutout, so blending must be on even against a single clear-colour
-;;;; background), a uniform buffer, and a bind group wired to it.
+;;;; Builds a fullscreen-triangle render pipeline for one planet LAYER:
+;;;; shader module, alpha-blended pipeline (layers output an a*col.a
+;;;; circle-mask cutout, so blending must be on even against a single
+;;;; clear-colour background), a uniform buffer, and a bind group wired to
+;;;; it. A PLANET may have several layers (see src/planets.lisp); this file
+;;;; builds one LAYER-PIPELINE per layer and draws them back-to-front into a
+;;;; single render pass, so multi-layer planets composite for free out of
+;;;; the existing per-layer blend state (ticket #104).
 
 (in-package #:pixel-planets)
 
-(defstruct (planet-pipeline (:constructor %make-planet-pipeline))
-  planet
+(defstruct (layer-pipeline (:constructor %make-layer-pipeline))
+  layer
   pipeline    ; gpu-render-pipeline
   buffer      ; gpu-buffer (uniform)
   bind-group) ; raw WGPUBindGroup handle
 
-(defun make-planet-pipeline (device surface-format planet)
-  "Build everything needed to draw PLANET: shader module, alpha-blended
-render pipeline, and a uniform buffer sized for PLANET's current defaults
+(defun make-layer-pipeline (device surface-format layer)
+  "Build everything needed to draw LAYER: shader module, alpha-blended
+render pipeline, and a uniform buffer sized for LAYER's current defaults
 (bound once via an auto-derived bind group layout)."
-  (let* ((wgsl (planet-wgsl planet))
+  (let* ((wgsl (layer-wgsl layer))
          (shader (cl-webgpu/wrapper:make-shader-module device wgsl
-                                                        :label (string (planet-name planet))))
+                                                        :label (string (layer-name layer))))
          (pipeline (cl-webgpu/wrapper:make-render-pipeline
                     device
                     :vertex-module shader
@@ -39,55 +43,73 @@ render pipeline, and a uniform buffer sized for PLANET's current defaults
                                  :alpha-src-factor :one
                                  :alpha-dst-factor :one-minus-src-alpha
                                  :alpha-operation :add)
-                    :label (format nil "~a pipeline" (planet-name planet)))))
+                    :label (format nil "~a pipeline" (layer-name layer)))))
     (multiple-value-bind (ptr size)
-        (write-uniform-block (planet-uniform-fields planet 0.0))
+        (write-uniform-block (layer-uniform-fields layer 0.0))
       (unwind-protect
           (let* ((buffer (cl-webgpu/wrapper:make-buffer
                           device :size size
                           :usage (logior cl-webgpu:+wgpu-buffer-usage-uniform+
                                          cl-webgpu:+wgpu-buffer-usage-copy-dst+)
-                          :label (format nil "~a uniforms" (planet-name planet))))
+                          :label (format nil "~a uniforms" (layer-name layer))))
                  (layout (cl-webgpu/wrapper:get-pipeline-bind-group-layout pipeline 0))
                  (bind-group (cl-webgpu/wrapper:make-bind-group
                               device layout
                               (list (list :binding 0 :buffer buffer :size size)))))
-            (%make-planet-pipeline :planet planet :pipeline pipeline
-                                   :buffer buffer :bind-group bind-group))
+            (%make-layer-pipeline :layer layer :pipeline pipeline
+                                  :buffer buffer :bind-group bind-group))
         (cffi:foreign-free ptr)))))
 
-(defun update-planet-uniforms (queue pp time &optional params)
-  "Re-pack PP's planet uniform fields for TIME (and optional override PARAMS)
+(defun make-planet-pipelines (device surface-format planet)
+  "Build one LAYER-PIPELINE per layer of PLANET, in back-to-front order."
+  (mapcar (lambda (layer) (make-layer-pipeline device surface-format layer))
+          (planet-layers planet)))
+
+(defun update-layer-uniforms (queue lp time &optional params)
+  "Re-pack LP's layer uniform fields for TIME (and optional override PARAMS)
 and upload to its uniform buffer."
   (multiple-value-bind (ptr size)
-      (write-uniform-block (planet-uniform-fields (planet-pipeline-planet pp) time
-                                                   (or params (planet-defaults (planet-pipeline-planet pp)))))
+      (write-uniform-block (layer-uniform-fields (layer-pipeline-layer lp) time
+                                                  (or params (layer-defaults (layer-pipeline-layer lp)))))
     (unwind-protect
-        (cl-webgpu/wrapper:write-buffer queue (planet-pipeline-buffer pp) 0 ptr size)
+        (cl-webgpu/wrapper:write-buffer queue (layer-pipeline-buffer lp) 0 ptr size)
       (cffi:foreign-free ptr))))
 
-(defun release-planet-pipeline (pp)
-  (cl-webgpu:wgpu-bind-group-release (planet-pipeline-bind-group pp))
-  (cl-webgpu/wrapper:release (planet-pipeline-buffer pp))
-  (cl-webgpu/wrapper:release (planet-pipeline-pipeline pp)))
+(defun update-planet-uniforms (queue pps time)
+  "Re-pack and upload uniforms for every layer-pipeline in PPS (as returned
+by MAKE-PLANET-PIPELINES), all driven by the same TIME."
+  (dolist (lp pps)
+    (update-layer-uniforms queue lp time)))
 
-(defun draw-planet (pass pp)
-  (cl-webgpu/wrapper:set-pipeline pass (planet-pipeline-pipeline pp))
-  (cl-webgpu/wrapper:set-bind-group pass 0 (planet-pipeline-bind-group pp))
+(defun release-layer-pipeline (lp)
+  (cl-webgpu:wgpu-bind-group-release (layer-pipeline-bind-group lp))
+  (cl-webgpu/wrapper:release (layer-pipeline-buffer lp))
+  (cl-webgpu/wrapper:release (layer-pipeline-pipeline lp)))
+
+(defun release-planet-pipelines (pps)
+  (dolist (lp pps) (release-layer-pipeline lp)))
+
+(defun draw-layer (pass lp)
+  (cl-webgpu/wrapper:set-pipeline pass (layer-pipeline-pipeline lp))
+  (cl-webgpu/wrapper:set-bind-group pass 0 (layer-pipeline-bind-group lp))
   (cl-webgpu/wrapper:draw pass 3))
 
-(defun render-planet-frame (device target pp &key (clear-r 0.05d0) (clear-g 0.05d0) (clear-b 0.08d0))
-  "Render one frame of PP into TARGET (a GPU-SURFACE or, with cl-webgpu/headless
-loaded, a GPU-OFFSCREEN-TARGET) and present/finalize it. Written against
-ACQUIRE-FRAME-TEXTURE-VIEW/PRESENT-FRAME so the same code drives both the
-on-screen window (src/app.lisp) and headless PNG capture (src/headless.lisp)."
+(defun render-planet-frame (device target pps &key (clear-r 0.05d0) (clear-g 0.05d0) (clear-b 0.08d0))
+  "Render one frame of PPS -- a planet's layer-pipelines, back to front, as
+returned by MAKE-PLANET-PIPELINES -- into TARGET (a GPU-SURFACE or, with
+cl-webgpu/headless loaded, a GPU-OFFSCREEN-TARGET) and present/finalize it.
+All layers draw into the same render pass (one clear, N draws, one
+submit/present) so each layer's alpha blending composites it over the
+layers already drawn. Written against ACQUIRE-FRAME-TEXTURE-VIEW/
+PRESENT-FRAME so the same code drives both the on-screen window
+(src/app.lisp) and headless PNG capture (src/headless.lisp)."
   (let ((view (cl-webgpu/wrapper:acquire-frame-texture-view target)))
     (when view
       (unwind-protect
           (cl-webgpu/wrapper:with-gpu-command-encoder (encoder device)
             (cl-webgpu/wrapper:with-render-pass (pass encoder view
                                                  :clear-r clear-r :clear-g clear-g :clear-b clear-b)
-              (draw-planet pass pp)
+              (dolist (lp pps) (draw-layer pass lp))
               (let* ((raw-queue (cl-webgpu:wgpu-device-get-queue (cl-webgpu/wrapper:handle device)))
                      (queue (make-instance 'cl-webgpu/wrapper:gpu-queue :handle raw-queue)))
                 (unwind-protect

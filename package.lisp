@@ -9,9 +9,11 @@
    ;; planet registry
    #:find-planet
    #:planet-name
-   #:planet-wgsl
-   #:planet-defaults
-   #:planet-fields-fn
+   #:planet-layers
+   #:layer-name
+   #:layer-wgsl
+   #:layer-defaults
+   #:layer-fields-fn
    #:*planets*
    ;; app
    #:run

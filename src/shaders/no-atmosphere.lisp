@@ -7,8 +7,9 @@
 ;;;; original project.
 ;;;;
 ;;;; NOTE: Craters.gdshader (the crater overlay layered on top of this in
-;;;; the original) is deferred to the multi-layer-compositing follow-up
-;;;; ticket, not ported here.
+;;;; the original) is ported separately in src/shaders/craters.lisp and
+;;;; composited over this layer via the :no-atmosphere planet's layer list
+;;;; in src/planets.lisp.
 
 (in-package #:pixel-planets)
 
@@ -26,9 +27,9 @@
   time: f32,
   octaves: u32,
   should_dither: u32,
+  layer_scale: f32,
   _pad0: f32,
   _pad1: f32,
-  _pad2: f32,
   colors: array<vec4<f32>, 3>,
 };
 @group(0) @binding(0) var<uniform> u: NoAtmosphereUniforms;
@@ -37,7 +38,7 @@
 (defparameter *no-atmosphere-fragment-wgsl*
   "@fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-  var uv = pixelize(in.uv, u.pixels);
+  var uv = pixelize(layer_uv(in.uv, u.layer_scale), u.pixels);
   let d_circle = distance(uv, vec2<f32>(0.5));
   var d_light = distance(uv, u.light_origin);
   let a = step(d_circle, 0.49999);
@@ -75,7 +76,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 (defun no-atmosphere-fields (params time)
   (destructuring-bind (&key pixels rotation light-origin time-speed dither-size
                             light-border-1 light-border-2 size seed octaves
-                            should-dither colors)
+                            should-dither (layer-scale 1.0) colors)
       params
     (list (list :f32 pixels)
           (list :f32 rotation)
@@ -89,13 +90,17 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
           (list :f32 time)
           (list :u32 octaves)
           (list :u32 (if should-dither 1 0))
-          (list :f32 0.0)
+          (list :f32 layer-scale)
           (list :f32 0.0)
           (list :f32 0.0)
           (list :vec4-array colors))))
 
 ;; Default parameters lifted from PixelPlanets/Planets/NoAtmosphere/NoAtmosphere.tscn
-;; (sub_resource id=1, the NoAtmosphere.gdshader material).
+;; (sub_resource id=1, the NoAtmosphere.gdshader material). LAYER-SCALE is not
+;; a Godot uniform -- it's this port's compositor knob (see
+;; src/planets.lisp), 1.0 here since Craters (this planet's second layer,
+;; ground+craters both drawn on 100x100 quads in the original) doesn't need
+;; rescaling.
 (defparameter *no-atmosphere-defaults*
   (list :pixels 100.0
         :rotation 0.0
@@ -108,6 +113,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         :seed 1.012
         :octaves 4
         :should-dither t
+        :layer-scale 1.0
         :colors (list '(0.639216 0.654902 0.760784 1.0)
                       '(0.298039 0.407843 0.521569 1.0)
                       '(0.227451 0.247059 0.368627 1.0))))

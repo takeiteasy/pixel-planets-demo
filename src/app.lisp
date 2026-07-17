@@ -44,7 +44,7 @@ list of ported planets."
                       (progn
                         (cl-webgpu/wrapper:configure-surface surface device fmt
                                                               *window-width* *window-height*)
-                        (let ((pp (make-planet-pipeline device fmt planet))
+                        (let ((pps (make-planet-pipelines device fmt planet))
                               (queue (cl-webgpu:wgpu-device-get-queue (cl-webgpu/wrapper:handle device)))
                               (start (get-internal-real-time)))
                           (unwind-protect
@@ -56,11 +56,11 @@ list of ported planets."
                                                         (float internal-time-units-per-second 1.0d0))))
                                            (update-planet-uniforms
                                             (make-instance 'cl-webgpu/wrapper:gpu-queue :handle queue)
-                                            pp time))
-                                         (render-planet-frame device surface pp)
+                                            pps time))
+                                         (render-planet-frame device surface pps)
                                          (sleep 0.016)))
                             (cl-webgpu:wgpu-queue-release queue)
-                            (release-planet-pipeline pp))))
+                            (release-planet-pipelines pps))))
                     (cl-webgpu/wrapper:release surface))))))
         (cl-glfw3:destroy-window window)
         (cl-glfw3:terminate)
