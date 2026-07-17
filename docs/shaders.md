@@ -19,8 +19,8 @@ translation approach.
 | `Asteroids/Asteroids.gdshader` | Ported | `src/shaders/asteroids.lisp` (`:asteroids`, layer `:asteroid`) |
 | `LandMasses/PlanetUnder.gdshader` | Ported | `src/shaders/planet-under.lisp` (`:land-masses`, layer `:water`) |
 | `LandMasses/PlanetLandmass.gdshader` | Ported | `src/shaders/planet-landmass.lisp` (`:land-masses`, layer `:land`) |
-| `LandMasses/Clouds.gdshader` | Ported | `src/shaders/clouds.lisp` (`:land-masses`, layer `:clouds`) |
-| `Rivers/LandRivers.gdshader` | Pending | — |
+| `LandMasses/Clouds.gdshader` | Ported | `src/shaders/clouds.lisp` (`:land-masses`, layer `:clouds`; also reused by `:rivers`' `:clouds` layer) |
+| `Rivers/LandRivers.gdshader` | Ported | `src/shaders/land-rivers.lisp` (`:rivers`, layer `:land-rivers`) |
 | `LavaWorld/Rivers.gdshader` | Ported | `src/shaders/lava-rivers.lisp` (`:lava-world`, layer `:lava-rivers`) |
 
 "Pending" shaders are tracked under the `PLANETS` label on the tracker. Multi-layer
@@ -61,3 +61,8 @@ LavaWorld.tscn sets its own light/palette/size values for the `ground`/`craters`
 they get their own `*lava-world-ground-defaults*`/`*lava-world-craters-defaults*` rather
 than sharing `*no-atmosphere-defaults*`/`*craters-defaults*` (see
 [porting.md](porting.md#new-porting-cases)).
+
+`rivers` follows the same shared-shader-different-defaults pattern for its `clouds` layer
+(reusing `src/shaders/clouds.lisp` with Rivers.tscn's own params as `*rivers-clouds-defaults*`),
+plus a new base layer (`land-rivers`, a terran river-network overlay -- not the same shader
+as `LavaWorld/Rivers.gdshader` despite the shared "Rivers" filename).

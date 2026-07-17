@@ -116,7 +116,17 @@
                        (make-layer :name :lava-rivers
                                    :wgsl-fn #'lava-rivers-wgsl
                                    :fields-fn #'lava-rivers-fields
-                                   :defaults *lava-rivers-defaults*)))))
+                                   :defaults *lava-rivers-defaults*)))
+        (make-planet
+         :name :rivers
+         :layers (list (make-layer :name :land-rivers
+                                   :wgsl-fn #'land-rivers-wgsl
+                                   :fields-fn #'land-rivers-fields
+                                   :defaults *land-rivers-defaults*)
+                       (make-layer :name :clouds
+                                   :wgsl-fn #'clouds-wgsl
+                                   :fields-fn #'clouds-fields
+                                   :defaults *rivers-clouds-defaults*)))))
 
 (defun find-planet (name)
   (or (find name *planets* :key #'planet-name)
