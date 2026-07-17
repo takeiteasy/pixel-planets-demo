@@ -14,12 +14,12 @@ translation approach.
 | `Star/StarFlares.gdshader` | Ported | `src/shaders/star-flares.lisp` (`:star`, layer `:star-flares`) |
 | `Galaxy/Galaxy.gdshader` | Pending | — |
 | `GasPlanet/GasPlanet.gdshader` | Pending | — |
-| `GasPlanetLayers/GasLayers.gdshader` | Pending | — |
-| `GasPlanetLayers/Ring.gdshader` | Pending | — |
+| `GasPlanetLayers/GasLayers.gdshader` | Ported | `src/shaders/gas-layers.lisp` (`:gas-planet-layers`, layer `:gas-layers`) |
+| `GasPlanetLayers/Ring.gdshader` | Ported | `src/shaders/ring.lisp` (`:gas-planet-layers`, layer `:ring`) |
 | `Asteroids/Asteroids.gdshader` | Pending | — |
-| `LandMasses/PlanetUnder.gdshader` | Pending | — |
-| `LandMasses/PlanetLandmass.gdshader` | Pending | — |
-| `LandMasses/Clouds.gdshader` | Pending | — |
+| `LandMasses/PlanetUnder.gdshader` | Ported | `src/shaders/planet-under.lisp` (`:land-masses`, layer `:water`) |
+| `LandMasses/PlanetLandmass.gdshader` | Ported | `src/shaders/planet-landmass.lisp` (`:land-masses`, layer `:land`) |
+| `LandMasses/Clouds.gdshader` | Ported | `src/shaders/clouds.lisp` (`:land-masses`, layer `:clouds`) |
 | `Rivers/LandRivers.gdshader` | Pending | — |
 | `LavaWorld/Rivers.gdshader` | Pending | — |
 
@@ -30,8 +30,12 @@ compositing infrastructure (draw a planet's layers back-to-front in one render p
 and StarBlobs/StarFlares followed as the oversized-quad case: the `black-hole` and `star`
 planets each now composite an oversized layer (BlackHoleRing's 300px disk; StarBlobs/
 StarFlares' 200px blobs/corona) around their original body, with the body's `layer_scale`
-shrunk to match (see [porting.md](porting.md#multi-layer-compositing)). Still pending: two
-new multi-layer planet types — LandMasses (`PlanetUnder`+`PlanetLandmass`+`Clouds`) and
-GasPlanetLayers (`GasLayers`+`Ring`) — neither of which has a base layer ported yet.
-Remaining single-layer shaders, DSL re-expression, resize handling, and live GUI controls
-are also tracked there.
+shrunk to match (see [porting.md](porting.md#multi-layer-compositing)). LandMasses and
+GasPlanetLayers followed as the first two planets ported with *no* prior single-layer base:
+`land-masses` stacks three same-size (100px), identity-`layer_scale` layers (`water` +
+`land` + `clouds`), the first case where two of the three layers are themselves partially
+transparent overlays rather than an opaque base with one transparent overlay on top;
+`gas-planet-layers` is the second worked oversized-layer example after BlackHoleRing (`ring`
+on a 300px quad, `gas-layers` body shrunk to `layer_scale` 100/300, ring occlusion behind
+the planet via `scale_rel_to_planet`). Remaining single-layer shaders, DSL re-expression,
+resize handling, and live GUI controls are also tracked on the tracker.

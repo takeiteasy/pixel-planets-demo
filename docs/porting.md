@@ -88,8 +88,22 @@ path: each planet's frame is fixed to its largest quad (BlackHoleRing's 300×300
 StarBlobs/StarFlares' 200×200 blobs/corona, both drawn at `layer_scale = 1.0`), and the
 original body layer shrinks to match (`black-hole` 100/300 ≈ 0.333; `star` 100/200 = 0.5)
 rather than the oversized layer scaling up. `layer_scale` was ported into every shader up
-front so a future oversized layer (e.g. GasPlanetLayers' `Ring`) only needs a non-1.0
-default on both the new and existing layers, not a shader rewrite.
+front so a future oversized layer only needs a non-1.0 default on both the new and existing
+layers, not a shader rewrite — `gas-planet-layers` (`src/shaders/ring.lisp` +
+`src/shaders/gas-layers.lisp`) is the second worked example after BlackHoleRing: `ring` is
+the 300×300 frame at `layer_scale = 1.0`, `gas-layers`' body shrinks to 100/300. `ring` also
+carries its own `scale_rel_to_planet` uniform (unrelated to `layer_scale`) that fakes the
+ring passing behind the planet by cutting pixels within `1/scale_rel_to_planet` of centre
+when in the upper half of the frame.
+
+**Transparent-over-transparent layers.** `land-masses` (`PlanetUnder`+`PlanetLandmass`+
+`Clouds`, all identity `layer_scale` — no oversized quad involved) is the first planet where
+more than one non-base layer is itself partially transparent (`PlanetLandmass` is cut out
+wherever `land_cutoff` isn't met, showing `PlanetUnder`'s water beneath; `Clouds` is cut out
+below its cover threshold, showing land/water beneath that). This needed no new compositing
+work — each layer's existing alpha blending (`src/pipeline.lisp`'s `:blend` state) already
+composites correctly over whatever partial coverage the layers beneath left behind; it's the
+same mechanic `craters` already proved, just chained one layer deeper.
 
 ## Colour space
 

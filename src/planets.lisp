@@ -56,7 +56,31 @@
                        (make-layer :name :star-flares
                                    :wgsl-fn #'star-flares-wgsl
                                    :fields-fn #'star-flares-fields
-                                   :defaults *star-flares-defaults*)))))
+                                   :defaults *star-flares-defaults*)))
+        (make-planet
+         :name :land-masses
+         :layers (list (make-layer :name :water
+                                   :wgsl-fn #'planet-under-wgsl
+                                   :fields-fn #'planet-under-fields
+                                   :defaults *planet-under-defaults*)
+                       (make-layer :name :land
+                                   :wgsl-fn #'planet-landmass-wgsl
+                                   :fields-fn #'planet-landmass-fields
+                                   :defaults *planet-landmass-defaults*)
+                       (make-layer :name :clouds
+                                   :wgsl-fn #'clouds-wgsl
+                                   :fields-fn #'clouds-fields
+                                   :defaults *clouds-defaults*)))
+        (make-planet
+         :name :gas-planet-layers
+         :layers (list (make-layer :name :gas-layers
+                                   :wgsl-fn #'gas-layers-wgsl
+                                   :fields-fn #'gas-layers-fields
+                                   :defaults *gas-layers-defaults*)
+                       (make-layer :name :ring
+                                   :wgsl-fn #'ring-wgsl
+                                   :fields-fn #'ring-fields
+                                   :defaults *ring-defaults*)))))
 
 (defun find-planet (name)
   (or (find name *planets* :key #'planet-name)

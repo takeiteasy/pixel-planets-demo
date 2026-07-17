@@ -1,4 +1,4 @@
-# pixel-planets
+# pixel-planets-demo
 
 A Common Lisp + WebGPU port of [Deep-Fold's PixelPlanets](https://github.com/Deep-Fold/PixelPlanets)
 (Godot 4.2, MIT) — procedurally generated pixel-art planets — built on
