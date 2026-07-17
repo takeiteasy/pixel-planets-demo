@@ -132,6 +132,14 @@ dynamic uniform-array indexing directly, but since `n_colors` is itself a runtim
 the port `clamp`s the computed index to the WGSL array's fixed compile-time length (7)
 rather than trusting the uniform to stay in range.
 
+**Reusing a layer shader under different scene parameters.** `lava-world` is the first
+planet to reuse an already-ported layer (`no-atmosphere` + `craters`) rather than porting a
+new shader for every layer. The Godot `.tscn` sets its own parameter values for that shared
+shader (different light origin, palette, size, etc. than the shader's original single-layer
+planet) -- so the reuse gets its own `*-defaults*` plist (`*lava-world-ground-defaults*`,
+`*lava-world-craters-defaults*`) rather than sharing the original planet's `*-defaults*`.
+Only the WGSL/fields functions are shared; defaults are always per-scene.
+
 ## Colour space
 
 The on-screen surface picks whatever format `get-surface-format` reports (typically

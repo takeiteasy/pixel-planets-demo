@@ -21,7 +21,7 @@ translation approach.
 | `LandMasses/PlanetLandmass.gdshader` | Ported | `src/shaders/planet-landmass.lisp` (`:land-masses`, layer `:land`) |
 | `LandMasses/Clouds.gdshader` | Ported | `src/shaders/clouds.lisp` (`:land-masses`, layer `:clouds`) |
 | `Rivers/LandRivers.gdshader` | Pending | — |
-| `LavaWorld/Rivers.gdshader` | Pending | — |
+| `LavaWorld/Rivers.gdshader` | Ported | `src/shaders/lava-rivers.lisp` (`:lava-world`, layer `:lava-rivers`) |
 
 "Pending" shaders are tracked under the `PLANETS` label on the tracker. Multi-layer
 compositing infrastructure (draw a planet's layers back-to-front in one render pass; see
@@ -52,3 +52,12 @@ cutout body -- Asteroids keeps an irregular noise-derived silhouette instead of 
 Galaxy has no cutout at all (a full-rect swirl, alpha from dithering). Both also use an
 untiled RAND (no `size`-based wrap), ported once as `phash_flat`/`fbm_flat` in
 `src/shaders/common.lisp` and shared between them.
+
+`lava-world` is the first planet to reuse already-ported layer shaders
+(`no-atmosphere`/`craters`, src/shaders/no-atmosphere.lisp, src/shaders/craters.lisp) under
+a *different* scene's parameters, alongside one new layer (`lava-rivers`, a lava-glow river
+overlay -- not the same shader as `Rivers/LandRivers.gdshader` despite the shared filename).
+LavaWorld.tscn sets its own light/palette/size values for the `ground`/`craters` layers, so
+they get their own `*lava-world-ground-defaults*`/`*lava-world-craters-defaults*` rather
+than sharing `*no-atmosphere-defaults*`/`*craters-defaults*` (see
+[porting.md](porting.md#new-porting-cases)).

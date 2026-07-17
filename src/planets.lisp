@@ -102,7 +102,21 @@
          :layers (list (make-layer :name :galaxy
                                    :wgsl-fn #'galaxy-wgsl
                                    :fields-fn #'galaxy-fields
-                                   :defaults *galaxy-defaults*)))))
+                                   :defaults *galaxy-defaults*)))
+        (make-planet
+         :name :lava-world
+         :layers (list (make-layer :name :ground
+                                   :wgsl-fn #'no-atmosphere-wgsl
+                                   :fields-fn #'no-atmosphere-fields
+                                   :defaults *lava-world-ground-defaults*)
+                       (make-layer :name :craters
+                                   :wgsl-fn #'craters-wgsl
+                                   :fields-fn #'craters-fields
+                                   :defaults *lava-world-craters-defaults*)
+                       (make-layer :name :lava-rivers
+                                   :wgsl-fn #'lava-rivers-wgsl
+                                   :fields-fn #'lava-rivers-fields
+                                   :defaults *lava-rivers-defaults*)))))
 
 (defun find-planet (name)
   (or (find name *planets* :key #'planet-name)
