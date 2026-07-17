@@ -50,8 +50,10 @@ ticket). Keep the WGSL struct and the Lisp field list next to each other in each
 ## Blend state
 
 Every planet shader outputs `a * col.a` as a circle-mask alpha cutout — the pipeline must
-have alpha blending on (`make-render-pipeline :blend '()`, i.e. standard premultiplied
-alpha) even for a single planet over a plain clear colour, or the cutout renders as a
+have alpha blending on (`make-render-pipeline` with the standard premultiplied-alpha
+`:blend` plist passed explicitly — *not* `:blend '()`, which reads as NIL and leaves
+blending off; see `cl-webgpu` weasel #84) even for a single planet over a plain clear
+colour, or the cutout renders as a
 solid square.
 
 ## Multi-layer compositing
@@ -163,7 +165,10 @@ is a mild brightness/contrast shift on screen, not a wrong palette.
 
 ## Verification
 
-`src/headless.lisp` (system `pixel-planets/headless`) renders a planet offscreen to a PNG
-via `cl-webgpu/headless`, with no window or display server. Compare against
-`reference/*.png` captures of the Godot originals (run the Godot project, screenshot each
-planet at its `.tscn` default parameters).
+Every shader was checked against the Godot original while porting by running the
+original `PixelPlanets` project locally, screenshotting each planet at its `.tscn`
+default parameters, and comparing pixel-for-pixel against `src/headless.lisp`'s
+(`pixel-planets/headless` system) offscreen PNG capture of the port. Neither the
+original project nor those reference screenshots are kept in this repo — porting is
+complete, so headless capture (`render-all-planets-png`) now mainly serves as a quick
+regression screenshot / CI tool rather than an ongoing comparison workflow.

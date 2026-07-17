@@ -1,7 +1,8 @@
 # Shader port status
 
-Source shaders live under `PixelPlanets/Planets/`. See [porting.md](porting.md) for the
-translation approach.
+Every shader below was ported from the corresponding `Planets/*/*.gdshader` file in
+[Deep-Fold's PixelPlanets](https://github.com/Deep-Fold/PixelPlanets) (not kept in this
+repo — porting is complete). See [porting.md](porting.md) for the translation approach.
 
 | Original shader | Status | Ported as |
 |---|---|---|

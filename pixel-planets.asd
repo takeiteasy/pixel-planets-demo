@@ -8,7 +8,9 @@
   :serial t
   :depends-on (#:cl-webgpu
                #:cl-webgpu/wrapper
-               #:cl-webgpu/glfw)
+               #:cl-webgpu/glfw
+               #:cl-webgpu/nuklear
+               #:cl-webgpu/nuklear-glfw-glue)
   :components ((:file "package")
                (:module "src"
                 :components
@@ -37,6 +39,7 @@
                    (:file "dry-terran")))
                  (:file "planets")
                  (:file "pipeline")
+                 (:file "gui")
                  (:file "app")))))
 
 (asdf:defsystem #:pixel-planets/headless

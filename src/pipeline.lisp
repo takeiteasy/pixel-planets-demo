@@ -95,7 +95,7 @@ by MAKE-PLANET-PIPELINES), all driven by the same TIME."
   (cl-webgpu/wrapper:draw pass 3))
 
 (defun render-planet-frame (device target pps &key (clear-r 0.05d0) (clear-g 0.05d0) (clear-b 0.08d0)
-                                                    fb-width fb-height)
+                                                    fb-width fb-height nuklear)
   "Render one frame of PPS -- a planet's layer-pipelines, back to front, as
 returned by MAKE-PLANET-PIPELINES -- into TARGET (a GPU-SURFACE or, with
 cl-webgpu/headless loaded, a GPU-OFFSCREEN-TARGET) and present/finalize it.
@@ -110,9 +110,20 @@ given and unequal (a resized, non-square window -- src/app.lisp always
 passes these; headless capture never does, since its targets are square by
 construction), the draw is confined to a centered square viewport/scissor so
 the planet's circular shaders keep their aspect ratio instead of stretching
-into an ellipse; the letterboxed margins stay at the clear colour."
+into an ellipse; the letterboxed margins stay at the clear colour.
+
+NUKLEAR, when given, is (RENDERER CTX FB-WIDTH FB-HEIGHT QUEUE) -- src/app.lisp's
+GUI panel is drawn into the same pass after the planet layers, over the full
+framebuffer (not the letterboxed square).
+
+ACQUIRE-FRAME-TEXTURE-VIEW returns NIL on an occasional suboptimal/outdated
+surface texture, meaning this frame draws nothing -- but app.lisp's render
+loop still called NK-BEGIN/NK-END for this frame before reaching here. Skip
+drawing in that case, but still advance Nuklear's internal frame state (what
+RENDER-NUKLEAR would otherwise do via NK-CLEAR at its end), or the next
+frame's NK-BEGIN asserts (win->seq != ctx->seq) since ctx->seq never moved."
   (let ((view (cl-webgpu/wrapper:acquire-frame-texture-view target)))
-    (when view
+    (if view
       (unwind-protect
           (cl-webgpu/wrapper:with-gpu-command-encoder (encoder device)
             (cl-webgpu/wrapper:with-render-pass (pass encoder view
@@ -124,6 +135,14 @@ into an ellipse; the letterboxed margins stay at the clear colour."
                   (cl-webgpu/wrapper:set-viewport pass vx vy size size)
                   (cl-webgpu/wrapper:set-scissor-rect pass vx vy size size)))
               (dolist (lp pps) (draw-layer pass lp))
+              (when nuklear
+                (destructuring-bind (renderer ctx nk-fb-width nk-fb-height queue) nuklear
+                  ;; Undo the planet's letterbox viewport/scissor -- the GUI
+                  ;; panel draws over the whole framebuffer, not just the
+                  ;; centered square.
+                  (cl-webgpu/wrapper:set-viewport pass 0 0 nk-fb-width nk-fb-height)
+                  (cl-webgpu/wrapper:set-scissor-rect pass 0 0 nk-fb-width nk-fb-height)
+                  (cl-webgpu/nuklear:render-nuklear renderer ctx pass nk-fb-width nk-fb-height queue)))
               (let* ((raw-queue (cl-webgpu:wgpu-device-get-queue (cl-webgpu/wrapper:handle device)))
                      (queue (make-instance 'cl-webgpu/wrapper:gpu-queue :handle raw-queue)))
                 (unwind-protect
@@ -131,4 +150,6 @@ into an ellipse; the letterboxed margins stay at the clear colour."
                       (cl-webgpu/wrapper:submit-commands encoder pass queue)
                       (cl-webgpu/wrapper:present-frame target))
                   (cl-webgpu:wgpu-queue-release raw-queue)))))
-        (cl-webgpu/wrapper:release view)))))
+        (cl-webgpu/wrapper:release view))
+      (when nuklear
+        (nuklear::nk-clear (second nuklear))))))
