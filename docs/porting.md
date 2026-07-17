@@ -105,6 +105,33 @@ work — each layer's existing alpha blending (`src/pipeline.lisp`'s `:blend` st
 composites correctly over whatever partial coverage the layers beneath left behind; it's the
 same mechanic `craters` already proved, just chained one layer deeper.
 
+## New porting cases
+
+A few of the last shaders ported introduced cases the earlier worked examples above didn't
+cover:
+
+**No disc cutout.** Every earlier shader masks its body with the
+`pixelize`-then-`distance(uv,0.5)`-then-`step` idiom. `Galaxy.gdshader` has none of that --
+it's a full-rect swirl (tilted, quantized FBM "layers", `swirl`-based rotation increasing
+with distance from centre) whose alpha comes entirely from `step(f2 + d_to_center2, 0.7)`
+and dithering. `Asteroids.gdshader` also has no disc cutout or `spherify` (the body is meant
+to be a flat, irregular chunk, not a sphere) -- its silhouette instead comes from
+`n_step`, a noise-vs-distance-to-center threshold. Don't reflexively add the disc-cutout
+idiom to a new shader; check whether the original has one first.
+
+**Untiled hash variant.** Most shaders' `rand` wraps its input coordinate by
+`round(size)` before hashing (`common.lisp`'s `phash`, tiled so noise repeats seamlessly at
+`size` boundaries). Asteroids and Galaxy skip that wrap entirely -- ported as
+`phash_flat`/`value_noise_flat`/`fbm_flat` in `common.lisp` rather than re-derived per file,
+since both need the identical untiled variant.
+
+**Dynamic uniform-array colour indexing.** Every earlier shader picks a palette entry via a
+fixed index or an if-chain (`col = colors[1]; if (...) { col = colors[2]; }`). Galaxy
+(`colors[int(f2)]`) instead computes a runtime float and casts it to an index. WGSL allows
+dynamic uniform-array indexing directly, but since `n_colors` is itself a runtime uniform,
+the port `clamp`s the computed index to the WGSL array's fixed compile-time length (7)
+rather than trusting the uniform to stay in range.
+
 ## Colour space
 
 The on-screen surface picks whatever format `get-surface-format` reports (typically

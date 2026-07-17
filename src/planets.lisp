@@ -90,7 +90,19 @@
                        (make-layer :name :cloud2
                                    :wgsl-fn #'gas-planet-wgsl
                                    :fields-fn #'gas-planet-fields
-                                   :defaults *gas-planet-cloud2-defaults*)))))
+                                   :defaults *gas-planet-cloud2-defaults*)))
+        (make-planet
+         :name :asteroids
+         :layers (list (make-layer :name :asteroid
+                                   :wgsl-fn #'asteroids-wgsl
+                                   :fields-fn #'asteroids-fields
+                                   :defaults *asteroids-defaults*)))
+        (make-planet
+         :name :galaxy
+         :layers (list (make-layer :name :galaxy
+                                   :wgsl-fn #'galaxy-wgsl
+                                   :fields-fn #'galaxy-fields
+                                   :defaults *galaxy-defaults*)))))
 
 (defun find-planet (name)
   (or (find name *planets* :key #'planet-name)

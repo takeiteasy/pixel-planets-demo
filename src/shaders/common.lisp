@@ -61,6 +61,38 @@ fn phash(co_in: vec2<f32>, seed: f32, size: f32) -> f32 {
   return fract(sin(dot(co, vec2<f32>(12.9898, 78.233))) * 15.5453 * seed);
 }
 
+// A second, untiled hash variant: several originals (Asteroids, Galaxy) omit
+// PHASH's `coord = mod(coord, round(size))` wrap entirely -- their RAND is a
+// straight hash with no SIZE-based tiling at all (their fbm's `size` only
+// scales the sampling coordinate, same as elsewhere). Kept distinct from
+// PHASH/VALUE_NOISE/FBM above rather than special-cased into them.
+fn phash_flat(co_in: vec2<f32>, seed: f32) -> f32 {
+  return fract(sin(dot(co_in, vec2<f32>(12.9898, 78.233))) * 15.5453 * seed);
+}
+
+fn value_noise_flat(coord: vec2<f32>, seed: f32) -> f32 {
+  let i = floor(coord);
+  let f = fract(coord);
+  let a = phash_flat(i, seed);
+  let b = phash_flat(i + vec2<f32>(1.0, 0.0), seed);
+  let c = phash_flat(i + vec2<f32>(0.0, 1.0), seed);
+  let d = phash_flat(i + vec2<f32>(1.0, 1.0), seed);
+  let cubic = f * f * (3.0 - 2.0 * f);
+  return mix(a, b, cubic.x) + (c - a) * cubic.y * (1.0 - cubic.x) + (d - b) * cubic.x * cubic.y;
+}
+
+fn fbm_flat(coord_in: vec2<f32>, octaves: u32, seed: f32) -> f32 {
+  var value = 0.0;
+  var scale = 0.5;
+  var coord = coord_in;
+  for (var i: u32 = 0u; i < octaves; i = i + 1u) {
+    value = value + value_noise_flat(coord, seed) * scale;
+    coord = coord * 2.0;
+    scale = scale * 0.5;
+  }
+  return value;
+}
+
 fn value_noise(coord: vec2<f32>, seed: f32, size: f32) -> f32 {
   let i = floor(coord);
   let f = fract(coord);
