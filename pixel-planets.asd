@@ -17,8 +17,11 @@
                   :components
                   ((:file "common")
                    (:file "black-hole")
+                   (:file "black-hole-ring")
                    (:file "no-atmosphere")
                    (:file "star")
+                   (:file "star-blobs")
+                   (:file "star-flares")
                    (:file "craters")))
                  (:file "planets")
                  (:file "pipeline")

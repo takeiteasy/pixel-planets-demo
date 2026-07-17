@@ -5,9 +5,11 @@
 ;;;; the original to Dave_Hoskins via Shadertoy: https://www.shadertoy.com/view/4djGRh),
 ;;;; spherify-mapped and rotated, indexed into a small palette.
 ;;;;
-;;;; NOTE: StarBlobs.gdshader (convection blobs) and StarFlares.gdshader
-;;;; (corona/flares) are separate layered shaders in the original, deferred
-;;;; to the multi-layer-compositing follow-up ticket.
+;;;; StarBlobs.gdshader (convection blobs) and StarFlares.gdshader
+;;;; (corona/flares) are separate layered shaders in the original -- ported
+;;;; as src/shaders/star-blobs.lisp and src/shaders/star-flares.lisp,
+;;;; composited around this body layer via the :star planet's layer list
+;;;; (src/planets.lisp).
 
 (in-package #:pixel-planets)
 
@@ -53,9 +55,10 @@ fn cells(p_in: vec2<f32>, num_cells: f32, tiles: f32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-  var pixelized = pixelize(layer_uv(in.uv, u.layer_scale), u.pixels);
+  let luv = layer_uv(in.uv, u.layer_scale);
+  var pixelized = pixelize(luv, u.pixels);
   let a = step(distance(pixelized, vec2<f32>(0.5)), 0.49999);
-  let dith = dither(in.uv, pixelized, u.pixels);
+  let dith = dither(luv, pixelized, u.pixels);
 
   pixelized = rotate2(pixelized, u.rotation);
   pixelized = spherify(pixelized);
@@ -104,8 +107,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 ;; (sub_resource id=4, the Star.gdshader material). `time` is driven live by
 ;; the host render loop rather than taken from the static tscn snapshot.
 ;; LAYER-SCALE is not a Godot uniform -- it's this port's compositor knob
-;; (see src/planets.lisp), 1.0 here until a follow-up ticket adds StarBlobs
-;; and StarFlares as oversized layers on this planet.
+;; (see src/planets.lisp). This body is drawn on a 100x100 quad but the
+;; planet's frame is now fixed to StarBlobs/StarFlares' larger 200x200 quads
+;; (src/shaders/star-blobs.lisp, src/shaders/star-flares.lisp), so
+;; LAYER-SCALE shrinks to 100/200 to keep all three layers agreeing on scale.
 (defparameter *star-defaults*
   (list :pixels 100.0
         :time-speed 0.05
@@ -116,7 +121,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         :tiles 1.0
         :n-colors 4
         :should-dither t
-        :layer-scale 1.0
+        :layer-scale (/ 100.0 200.0)
         :colors (list '(0.960784 1.0 0.909804 1.0)
                       '(0.466667 0.839216 0.756863 1.0)
                       '(0.109804 0.572549 0.654902 1.0)

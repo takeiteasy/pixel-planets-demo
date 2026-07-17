@@ -120,8 +120,7 @@ fn layer_uv(uv: vec2<f32>, scale: f32) -> vec2<f32> {
 
 // by Leukbaars from https://www.shadertoy.com/view/4tK3zR -- a hash-grid of
 // randomly sized/offset circles, tileable via PHASH's SIZE-based wrap.
-// Used by Craters (and, in later layers, Clouds/GasLayers/StarBlobs/
-// StarFlares/Ring/BlackHoleRing).
+// Used by Craters (and, in later layers, Clouds/GasLayers/Ring).
 fn circle_noise(uv_in: vec2<f32>, seed: f32, size: f32) -> f32 {
   var uv = uv_in;
   let uv_y = floor(uv.y);
@@ -131,5 +130,28 @@ fn circle_noise(uv_in: vec2<f32>, seed: f32, size: f32) -> f32 {
   let m = length(f - 0.25 - vec2<f32>(h * 0.5));
   let r = h * 0.25;
   return smoothstep(r - 0.10 * r, r, m);
+}
+
+// Ported from the `circle()` helper shared verbatim by
+// PixelPlanets/Planets/Star/StarBlobs.gdshader and StarFlares.gdshader -- a
+// polar hash-grid of circles distinct from CIRCLE_NOISE above (this one is
+// parameterized by CIRCLE_AMOUNT/CIRCLE_SCALE rather than SIZE alone, and
+// staggers alternating rows by half a cell instead of Leukbaars' per-row x
+// offset). CIRCLE_AMOUNT_OR_SCALE is the caller's circle_size/circle_scale
+// uniform (same role, different name per shader).
+fn polar_circle(uv_in: vec2<f32>, circle_amount: f32, circle_amount_or_scale: f32, seed: f32, size: f32) -> f32 {
+  var uv = uv_in;
+  let invert = 1.0 / circle_amount;
+
+  if (gmod(uv.y, invert * 2.0) < invert) {
+    uv.x = uv.x + invert * 0.5;
+  }
+  let rand_co = floor(uv * circle_amount) / circle_amount;
+  uv = gmod2(uv, invert) * circle_amount;
+
+  var r = phash(rand_co, seed, size);
+  r = clamp(r, invert, 1.0 - invert);
+  let circ = distance(uv, vec2<f32>(r, r));
+  return smoothstep(circ, circ + 0.5, invert * circle_amount_or_scale * phash(rand_co * 1.5, seed, size));
 }
 ")

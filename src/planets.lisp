@@ -28,7 +28,11 @@
          :layers (list (make-layer :name :black-hole
                                    :wgsl-fn #'black-hole-wgsl
                                    :fields-fn #'black-hole-fields
-                                   :defaults *black-hole-defaults*)))
+                                   :defaults *black-hole-defaults*)
+                       (make-layer :name :black-hole-ring
+                                   :wgsl-fn #'black-hole-ring-wgsl
+                                   :fields-fn #'black-hole-ring-fields
+                                   :defaults *black-hole-ring-defaults*)))
         (make-planet
          :name :no-atmosphere
          :layers (list (make-layer :name :ground
@@ -41,10 +45,18 @@
                                    :defaults *craters-defaults*)))
         (make-planet
          :name :star
-         :layers (list (make-layer :name :star
+         :layers (list (make-layer :name :star-blobs
+                                   :wgsl-fn #'star-blobs-wgsl
+                                   :fields-fn #'star-blobs-fields
+                                   :defaults *star-blobs-defaults*)
+                       (make-layer :name :star
                                    :wgsl-fn #'star-wgsl
                                    :fields-fn #'star-fields
-                                   :defaults *star-defaults*)))))
+                                   :defaults *star-defaults*)
+                       (make-layer :name :star-flares
+                                   :wgsl-fn #'star-flares-wgsl
+                                   :fields-fn #'star-flares-fields
+                                   :defaults *star-flares-defaults*)))))
 
 (defun find-planet (name)
   (or (find name *planets* :key #'planet-name)

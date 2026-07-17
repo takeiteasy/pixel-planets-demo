@@ -52,14 +52,15 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 ;; Default parameters lifted from PixelPlanets/Planets/BlackHole/BlackHole.tscn
 ;; (sub_resource id=3, the BlackHole.gdshader material). LAYER-SCALE is not a
-;; Godot uniform -- it's this port's compositor knob (see src/planets.lisp),
-;; 1.0 (identity) until a follow-up ticket adds BlackHoleRing as a second,
-;; oversized layer on this planet.
+;; Godot uniform -- it's this port's compositor knob (see src/planets.lisp).
+;; This body is drawn on a 100x100 quad but the planet's frame is now fixed
+;; to BlackHoleRing's larger 300x300 quad (src/shaders/black-hole-ring.lisp),
+;; so LAYER-SCALE shrinks to 100/300 to keep both layers agreeing on scale.
 (defparameter *black-hole-defaults*
   (list :pixels 100.0
         :radius 0.247
         :light-width 0.028
-        :layer-scale 1.0
+        :layer-scale (/ 100.0 300.0)
         :colors (list '(0.152941 0.152941 0.211765 1.0)
                       '(1.0 1.0 0.921569 1.0)
                       '(0.929412 0.482353 0.223529 1.0))))

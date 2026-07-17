@@ -3,12 +3,12 @@
 Captured from the live Godot project (`godot --path PixelPlanets Planets/<X>/<X>.tscn`) and
 from `pixel-planets:render-all-planets-png`, for eyeballing the port against the original.
 
-- `*-godot-full.png` — the **full composited Godot scene**, including overlay layers not yet
-  ported (BlackHole also renders `BlackHoleRing.gdshader`; NoAtmosphere also renders
-  `Craters.gdshader`; Star also renders `StarBlobs.gdshader` + `StarFlares.gdshader`). These
-  are not a pixel-for-pixel target for the currently-ported base shaders — compare palette,
-  light direction, and noise character, not exact pixels, until the overlay layers are ported
-  (see the multi-layer-compositing follow-up ticket).
+- `*-godot-full.png` — the **full composited Godot scene**. All overlay layers are now
+  ported and composited by `render-planet-png` too (BlackHole+`BlackHoleRing.gdshader`;
+  NoAtmosphere+`Craters.gdshader`; Star+`StarBlobs.gdshader`+`StarFlares.gdshader` — see
+  [../docs/porting.md#multi-layer-compositing](../docs/porting.md#multi-layer-compositing)).
+  Still not a pixel-for-pixel target — compare palette, light direction, composition, and
+  noise character, not exact pixels.
 - `*-ported.png` — headless output of the corresponding ported shader alone
   (`pixel-planets:render-planet-png`).
 

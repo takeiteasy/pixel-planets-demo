@@ -81,11 +81,15 @@ Keep each layer's Godot `pixels` uniform as-is (100/200/300 etc.) rather than
 normalizing it — it already compensates for the oversized quad's pixel density in the
 original, and only matches up correctly alongside `layer_scale` if left alone.
 
-`layer_scale` is a compositor-only knob — it has no corresponding Godot uniform, and is
-1.0 (identity) for every layer ported so far (`no-atmosphere`'s `ground`+`craters` are
-both ordinary 100×100-equivalent layers). It's ported into every shader up front so
-future oversized layers (BlackHoleRing, StarBlobs/StarFlares, GasPlanetLayers' `Ring`)
-only need a non-1.0 default, not a shader rewrite.
+`layer_scale` is a compositor-only knob — it has no corresponding Godot uniform.
+`no-atmosphere`'s `ground`+`craters` are both ordinary 100×100-equivalent layers, so both
+stay at 1.0 (identity). `black-hole` and `star` are the worked examples of the non-identity
+path: each planet's frame is fixed to its largest quad (BlackHoleRing's 300×300 disk;
+StarBlobs/StarFlares' 200×200 blobs/corona, both drawn at `layer_scale = 1.0`), and the
+original body layer shrinks to match (`black-hole` 100/300 ≈ 0.333; `star` 100/200 = 0.5)
+rather than the oversized layer scaling up. `layer_scale` was ported into every shader up
+front so a future oversized layer (e.g. GasPlanetLayers' `Ring`) only needs a non-1.0
+default on both the new and existing layers, not a shader rewrite.
 
 ## Colour space
 
