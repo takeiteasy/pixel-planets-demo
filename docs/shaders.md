@@ -13,7 +13,7 @@ translation approach.
 | `Star/StarBlobs.gdshader` | Ported | `src/shaders/star-blobs.lisp` (`:star`, layer `:star-blobs`) |
 | `Star/StarFlares.gdshader` | Ported | `src/shaders/star-flares.lisp` (`:star`, layer `:star-flares`) |
 | `Galaxy/Galaxy.gdshader` | Pending | — |
-| `GasPlanet/GasPlanet.gdshader` | Pending | — |
+| `GasPlanet/GasPlanet.gdshader` | Ported | `src/shaders/gas-planet.lisp` (`:gas-planet`, layers `:cloud`, `:cloud2`) |
 | `GasPlanetLayers/GasLayers.gdshader` | Ported | `src/shaders/gas-layers.lisp` (`:gas-planet-layers`, layer `:gas-layers`) |
 | `GasPlanetLayers/Ring.gdshader` | Ported | `src/shaders/ring.lisp` (`:gas-planet-layers`, layer `:ring`) |
 | `Asteroids/Asteroids.gdshader` | Pending | — |
@@ -39,3 +39,9 @@ transparent overlays rather than an opaque base with one transparent overlay on 
 on a 300px quad, `gas-layers` body shrunk to `layer_scale` 100/300, ring occlusion behind
 the planet via `scale_rel_to_planet`). Remaining single-layer shaders, DSL re-expression,
 resize handling, and live GUI controls are also tracked on the tracker.
+
+`gas-planet` is the first of this last batch: functionally near-identical to
+`LandMasses/Clouds.gdshader` (src/shaders/clouds.lisp) -- same untiled-hash RAND, same
+turbulence -- but the .tscn stacks two ColorRects of this one shader with different
+parameters (`:cloud` + `:cloud2` layers), and its fragment skips one alpha re-attenuation
+step Clouds has (preserved as ported, not a bug).

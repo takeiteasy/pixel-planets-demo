@@ -80,7 +80,17 @@
                        (make-layer :name :ring
                                    :wgsl-fn #'ring-wgsl
                                    :fields-fn #'ring-fields
-                                   :defaults *ring-defaults*)))))
+                                   :defaults *ring-defaults*)))
+        (make-planet
+         :name :gas-planet
+         :layers (list (make-layer :name :cloud
+                                   :wgsl-fn #'gas-planet-wgsl
+                                   :fields-fn #'gas-planet-fields
+                                   :defaults *gas-planet-cloud-defaults*)
+                       (make-layer :name :cloud2
+                                   :wgsl-fn #'gas-planet-wgsl
+                                   :fields-fn #'gas-planet-fields
+                                   :defaults *gas-planet-cloud2-defaults*)))))
 
 (defun find-planet (name)
   (or (find name *planets* :key #'planet-name)
